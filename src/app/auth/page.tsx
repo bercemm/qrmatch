@@ -1,102 +1,88 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { supabase } from "../lib/supabaseClient"
-import { useRouter } from "next/navigation"
+import { useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
-  const router = useRouter()
+  const router = useRouter();
 
-  // giriş state
-  const [loginEmail, setLoginEmail] = useState("")
-  const [loginPassword, setLoginPassword] = useState("")
+  // Giriş state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
-  // kayıt state
-  const [username, setUsername] = useState("")
-  const [registerEmail, setRegisterEmail] = useState("")
-  const [registerPassword, setRegisterPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [avatar, setAvatar] = useState<File | null>(null)
+  // Kayıt state
+  const [username, setUsername] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [avatar, setAvatar] = useState<File | null>(null);
 
-  // giriş yap
+  // Giriş yap
   const handleSignIn = async () => {
-    console.log("🔵 Giriş yap denendi:", loginEmail)
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
-    })
+    });
 
     if (error) {
-      console.error("Giriş hatası:", error)
-      alert("Giriş hatası: " + error.message)
-    } else {
-      router.replace("/home")
+      alert("Giriş hatası: " + error.message);
+      return;
     }
-  }
+    router.push("/home"); // ✅ giriş başarılı → home
+  };
 
-  // kayıt ol
+  // Kayıt ol
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("🟢 Kayıt ol butonuna basıldı")
+    e.preventDefault();
 
     if (registerPassword !== confirmPassword) {
-      alert("Şifreler uyuşmuyor!")
-      return
+      alert("Şifreler uyuşmuyor!");
+      return;
     }
 
-    let avatarUrl: string | null = null
+    let avatarUrl: string | null = null;
 
-    // avatar yükleme
+    // Avatarı storage’a yükle
     if (avatar) {
-      try {
-        const fileExt = avatar.name.split(".").pop()
-        const fileName = `${Date.now()}.${fileExt}`
-        const filePath = `${fileName}`
+      const fileExt = avatar.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, avatar)
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, avatar);
 
-        if (uploadError) {
-          console.error("Dosya yüklenemedi:", uploadError)
-          alert("Dosya yüklenemedi: " + uploadError.message)
-          return
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath)
-
-        avatarUrl = publicUrlData.publicUrl
-      } catch (err) {
-        console.error("Beklenmedik dosya yükleme hatası:", err)
+      if (uploadError) {
+        alert("Dosya yüklenemedi: " + uploadError.message);
+        return;
       }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      avatarUrl = publicUrlData.publicUrl;
     }
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
-        options: {
-          data: {
-            username: username,
-            avatar_url: avatarUrl,
-          },
+    const { error } = await supabase.auth.signUp({
+      email: registerEmail,
+      password: registerPassword,
+      options: {
+        data: {
+          username,
+          avatar_url: avatarUrl,
         },
-      })
+      },
+    });
 
-      if (error) {
-        console.error("Supabase kayıt hatası:", error)
-        alert("Kayıt hatası: " + error.message)
-        return
-      }
-
-      alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
-    } catch (err) {
-      console.error("Beklenmedik hata:", err)
-      alert("Beklenmedik hata oldu, konsolu kontrol et 🚨")
+    if (error) {
+      alert("Kayıt hatası: " + error.message);
+      return;
     }
-  }
+
+    alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-8 bg-black text-white">
@@ -119,20 +105,14 @@ export default function AuthPage() {
           onChange={(e) => setLoginPassword(e.target.value)}
           className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
-        <button
-          type="button"
-          onClick={handleSignIn}
-          className="bg-blue-500 px-4 py-2 rounded"
-        >
+        <button onClick={handleSignIn} className="bg-blue-500 px-4 py-2 rounded">
           Giriş Yap
         </button>
+        {/* ⛔️ Fazladan link buradaydı — tamamen kaldırdık */}
       </div>
 
       {/* Kayıt Formu */}
-      <form
-        onSubmit={handleSignUp}
-        className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80"
-      >
+      <form onSubmit={handleSignUp} className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80">
         <h2 className="text-lg font-semibold">Kayıt Ol</h2>
         <input
           type="text"
@@ -177,9 +157,8 @@ export default function AuthPage() {
             onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
             className="hidden"
           />
-          {avatar && (
-            <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>
-          )}
+          {/* Seçilen dosya adı */}
+          {avatar && <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>}
         </div>
 
         <button type="submit" className="bg-green-500 px-4 py-2 rounded">
@@ -187,6 +166,5 @@ export default function AuthPage() {
         </button>
       </form>
     </div>
-  )
+  );
 }
-
