@@ -30,7 +30,7 @@ export default function AuthPage() {
       console.error("Giriş hatası:", error)
       alert("Giriş hatası: " + error.message)
     } else {
-      router.push("/lobby") // ✅ giriş yapınca lobiye yönlendir
+      router.push("/home") // ✅ giriş yapınca lobiye yönlendir
     }
   }
 

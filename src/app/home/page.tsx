@@ -1,23 +1,38 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { supabase } from "../lib/supabaseClient"
 
 export default function HomePage() {
-  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
 
-  const handleGoToLobby = () => {
-    router.push("/lobby")
-  }
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [])
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-black text-white gap-6">
-      <h1 className="text-3xl font-bold">🎉 Hoş geldin!</h1>
-      <button
-        onClick={handleGoToLobby}
-        className="bg-green-500 px-6 py-3 rounded-lg text-lg hover:bg-green-600 transition"
-      >
-        Hoş buldum
-      </button>
+    <div className="flex flex-col items-center justify-center h-screen bg-black text-white gap-4">
+      {user ? (
+        <>
+          <h1 className="text-3xl font-bold">
+            Hoş geldin {user.user_metadata?.username || "Kullanıcı"}!!
+          </h1>
+          <img
+            src={user.user_metadata?.avatar_url || "/default-avatar.png"}
+            alt="Profil Fotoğrafı"
+            className="w-32 h-32 rounded-full object-cover border-2 border-white"
+          />
+          <p className="text-lg mt-4">Hoş buldumm 🤍</p>
+        </>
+      ) : (
+        <p>Yükleniyor...</p>
+      )}
     </div>
   )
 }
