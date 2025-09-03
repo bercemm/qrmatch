@@ -20,12 +20,14 @@ export default function AuthPage() {
 
   // giriş yap
   const handleSignIn = async () => {
+    console.log("🔵 Giriş yap denendi:", loginEmail)
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     })
 
     if (error) {
+      console.error("Giriş hatası:", error)
       alert("Giriş hatası: " + error.message)
     } else {
       router.push("/lobby") // ✅ giriş yapınca lobiye yönlendir
@@ -35,6 +37,7 @@ export default function AuthPage() {
   // kayıt ol
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("🟢 Kayıt ol butonuna basıldı")
 
     if (registerPassword !== confirmPassword) {
       alert("Şifreler uyuşmuyor!")
@@ -43,44 +46,56 @@ export default function AuthPage() {
 
     let avatarUrl = null
 
+    // ✅ avatar yükleme
     if (avatar) {
-      const fileExt = avatar.name.split(".").pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
+      try {
+        const fileExt = avatar.name.split(".").pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, avatar)
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatar)
 
-      if (uploadError) {
-        console.error("Dosya yüklenemedi:", uploadError)
+        if (uploadError) {
+          console.error("Dosya yüklenemedi:", uploadError)
+          alert("Dosya yüklenemedi: " + uploadError.message)
+          return
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath)
+
+        avatarUrl = publicUrlData.publicUrl
+      } catch (err) {
+        console.error("Beklenmedik dosya yükleme hatası:", err)
+      }
+    }
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: registerEmail,
+        password: registerPassword,
+        options: {
+          data: {
+            username: username,
+            avatar_url: avatarUrl,
+          },
+        },
+      })
+
+      if (error) {
+        console.error("Supabase kayıt hatası:", error)
+        alert("Kayıt hatası: " + error.message)
         return
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath)
-
-      avatarUrl = publicUrlData.publicUrl
+      alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
+    } catch (err) {
+      console.error("Beklenmedik hata:", err)
+      alert("Beklenmedik hata oldu, konsolu kontrol et 🚨")
     }
-
-    const { error } = await supabase.auth.signUp({
-      email: registerEmail,
-      password: registerPassword,
-      options: {
-        data: {
-          username: username,
-          avatar_url: avatarUrl,
-        },
-      },
-    })
-
-    if (error) {
-      alert("Kayıt hatası: " + error.message)
-      return
-    }
-
-    alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz ✅")
   }
 
   return (
@@ -114,7 +129,7 @@ export default function AuthPage() {
 
       {/* Kayıt Formu */}
       <form
-        onSubmit={handleSignUp} // ✅ burası kritik
+        onSubmit={handleSignUp}
         className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80"
       >
         <h2 className="text-lg font-semibold">Kayıt Ol</h2>
@@ -166,10 +181,7 @@ export default function AuthPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          className="bg-green-500 px-4 py-2 rounded"
-        >
+        <button type="submit" className="bg-green-500 px-4 py-2 rounded">
           Kayıt Ol
         </button>
       </form>
