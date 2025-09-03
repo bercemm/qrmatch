@@ -153,12 +153,25 @@ export default function AuthPage() {
           className="p-2 rounded text-white placeholder-white bg-gray-800"
 
         />
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="avatarUpload"
+            className="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer text-center"
+          >
+            📷 Fotoğraf Yükle!
+        </label>
         <input
+          id="avatarUpload"
           type="file"
           accept="image/*"
           onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
-          className="p-2 rounded text-white"
+          className="hidden"
         />
+        {avatar && (
+          <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>
+        )}
+        </div>
+
         <button
           type="submit"
           className="bg-green-500 px-4 py-2 rounded"
