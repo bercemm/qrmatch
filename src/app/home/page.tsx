@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabaseClient"
+import type { User } from "@supabase/supabase-js"  // ✅ User tipini import ettik
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null) // ✅ any yerine User | null
 
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser()
-      setUser(data?.user || null)
+      setUser(data?.user ?? null)
     }
     getUser()
   }, [])
