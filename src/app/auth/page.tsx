@@ -28,7 +28,8 @@ export default function AuthPage() {
     if (error) {
       alert("Giriş hatası: " + error.message)
     } else {
-      router.push("/home") // ✅ sadece girişte yönlendir
+      // ✅ giriş yapınca yönlendir
+      router.push("/lobby")
     }
   }
 
@@ -43,6 +44,7 @@ export default function AuthPage() {
 
     let avatarUrl = null
 
+    // ✅ avatarı önce storage'a yükle
     if (avatar) {
       const fileExt = avatar.name.split(".").pop()
       const fileName = `${Date.now()}.${fileExt}`
@@ -64,9 +66,16 @@ export default function AuthPage() {
       avatarUrl = publicUrlData.publicUrl
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    // ✅ kullanıcıyı oluştur
+    const { error } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
+      options: {
+        data: {
+          username: username,
+          avatar_url: avatarUrl,
+        },
+      },
     })
 
     if (error) {
@@ -74,16 +83,7 @@ export default function AuthPage() {
       return
     }
 
-    const { data: user } = await supabase.auth.getUser()
-
-    if (user?.user) {
-      await supabase.from("profiles").insert({
-        id: user.user.id,
-        username: username,
-        avatar_url: avatarUrl,
-      })
-    }
-
+    // ✅ otomatik giriş yerine mesaj göster
     alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz ✅")
   }
 
@@ -99,14 +99,14 @@ export default function AuthPage() {
           placeholder="Email"
           value={loginEmail}
           onChange={(e) => setLoginEmail(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
         <input
           type="password"
           placeholder="Şifre"
           value={loginPassword}
           onChange={(e) => setLoginPassword(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
         <button
           onClick={handleSignIn}
@@ -127,28 +127,31 @@ export default function AuthPage() {
           placeholder="Adınız"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
         <input
           type="email"
           placeholder="Email"
           value={registerEmail}
           onChange={(e) => setRegisterEmail(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
+
         />
         <input
           type="password"
           placeholder="Şifre"
           value={registerPassword}
           onChange={(e) => setRegisterPassword(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
+
         />
         <input
           type="password"
           placeholder="Şifre Tekrar"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="p-2 rounded text-black"
+          className="p-2 rounded text-white placeholder-white bg-gray-800"
+
         />
         <input
           type="file"
