@@ -120,11 +120,13 @@ export default function AuthPage() {
           className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
         <button
+          type="button"
           onClick={handleSignIn}
           className="bg-blue-500 px-4 py-2 rounded"
         >
           Giriş Yap
         </button>
+        <a href="/home" className="bg-blue-500 px-4 py-2 rounded text-center mt-2 block">Giri5FY Yap (Link)</a>
       </div>
 
       {/* Kayıt Formu */}
