@@ -20,7 +20,7 @@ export default function AuthPage() {
 
   // giriş yap
   const handleSignIn = async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     })
@@ -28,8 +28,7 @@ export default function AuthPage() {
     if (error) {
       alert("Giriş hatası: " + error.message)
     } else {
-      // ✅ giriş yapınca yönlendir
-      router.push("/lobby")
+      router.push("/lobby") // ✅ giriş yapınca lobiye yönlendir
     }
   }
 
@@ -44,7 +43,6 @@ export default function AuthPage() {
 
     let avatarUrl = null
 
-    // ✅ avatarı önce storage'a yükle
     if (avatar) {
       const fileExt = avatar.name.split(".").pop()
       const fileName = `${Date.now()}.${fileExt}`
@@ -66,7 +64,6 @@ export default function AuthPage() {
       avatarUrl = publicUrlData.publicUrl
     }
 
-    // ✅ kullanıcıyı oluştur
     const { error } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
@@ -83,7 +80,6 @@ export default function AuthPage() {
       return
     }
 
-    // ✅ otomatik giriş yerine mesaj göster
     alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz ✅")
   }
 
@@ -118,7 +114,7 @@ export default function AuthPage() {
 
       {/* Kayıt Formu */}
       <form
-        onSubmit={handleSignUp}
+        onSubmit={handleSignUp} // ✅ burası kritik
         className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80"
       >
         <h2 className="text-lg font-semibold">Kayıt Ol</h2>
@@ -135,7 +131,6 @@ export default function AuthPage() {
           value={registerEmail}
           onChange={(e) => setRegisterEmail(e.target.value)}
           className="p-2 rounded text-white placeholder-white bg-gray-800"
-
         />
         <input
           type="password"
@@ -143,7 +138,6 @@ export default function AuthPage() {
           value={registerPassword}
           onChange={(e) => setRegisterPassword(e.target.value)}
           className="p-2 rounded text-white placeholder-white bg-gray-800"
-
         />
         <input
           type="password"
@@ -151,25 +145,25 @@ export default function AuthPage() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="p-2 rounded text-white placeholder-white bg-gray-800"
-
         />
+
         <div className="flex flex-col gap-2">
           <label
             htmlFor="avatarUpload"
             className="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer text-center"
           >
             📷 Fotoğraf Yükle!
-        </label>
-        <input
-          id="avatarUpload"
-          type="file"
-          accept="image/*"
-          onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
-          className="hidden"
-        />
-        {avatar && (
-          <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>
-        )}
+          </label>
+          <input
+            id="avatarUpload"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
+            className="hidden"
+          />
+          {avatar && (
+            <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>
+          )}
         </div>
 
         <button
