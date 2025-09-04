@@ -29,7 +29,7 @@ export default function AuthPage() {
       alert("Giriş hatası: " + error.message);
       return;
     }
-    router.push("/home");
+    router.push("/home"); // ✅ giriş başarılı → home
   };
 
   // Kayıt ol
@@ -82,8 +82,8 @@ export default function AuthPage() {
       return;
     }
 
+    // ✅ Artık yönlendirme yok, sadece alert
     alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
-    router.push("/"); // kayıttan sonra login sayfasına yönlendir
   };
 
   return (
