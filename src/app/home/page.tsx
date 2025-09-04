@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/navigation"; // ✅ yönlendirme için
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // ✅ router tanımlandı
 
   useEffect(() => {
     const getUser = async () => {
@@ -63,8 +65,11 @@ export default function HomePage() {
           />
 
           {/* Hoş buldum butonu */}
-          <button className="bg-green-500 px-6 py-2 rounded hover:bg-green-600 transition">
-            Hoş buldum 💚
+          <button
+            onClick={() => router.push("/lobby")} // ✅ tıklanınca lobby sayfasına git
+            className="bg-green-500 px-6 py-2 rounded hover:bg-green-600 transition"
+          >
+            Hoş buldummm 💚
           </button>
         </>
       ) : (
