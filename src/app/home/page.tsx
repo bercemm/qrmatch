@@ -15,9 +15,12 @@ export default function HomePage() {
       } else {
         setUser(data?.user || null);
 
-        // 🔥 Debug için log ekledim
-        console.log("👤 Kullanıcı metadata:", data?.user?.user_metadata);
-        console.log("📸 Avatar URL:", data?.user?.user_metadata?.avatar_url);
+        // 🔥 Debug logları
+        console.log("👤 user_metadata:", data?.user?.user_metadata);
+        console.log(
+          "👤 raw_user_meta_data:",
+          (data?.user as any)?.raw_user_meta_data
+        );
       }
       setLoading(false);
     };
@@ -32,22 +35,29 @@ export default function HomePage() {
     );
   }
 
+  // 🔥 Metadata'yı güvenli şekilde al
+  const username =
+    (user as any)?.raw_user_meta_data?.username ||
+    user?.user_metadata?.username ||
+    "Kullanıcı";
+
+  const avatarUrl =
+    (user as any)?.raw_user_meta_data?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    "/default-avatar.png";
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6">
       {user ? (
         <>
           {/* Başlık + isim */}
           <h1 className="text-3xl font-bold text-center">
-            ✨ Hoş geldin {user.user_metadata?.username || "Kullanıcı"}!! ✨
+            ✨ Hoş geldin {username}!! ✨
           </h1>
 
           {/* Profil fotoğrafı */}
           <img
-            src={
-              user.user_metadata?.avatar_url && user.user_metadata.avatar_url.length > 0
-                ? user.user_metadata.avatar_url
-                : "/default-avatar.png"
-            }
+            src={avatarUrl}
             alt="Profil Fotoğrafı"
             className="w-32 h-32 rounded-full border-4 border-gray-700 object-cover shadow-lg"
           />

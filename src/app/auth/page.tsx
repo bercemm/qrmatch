@@ -29,7 +29,7 @@ export default function AuthPage() {
       alert("Giriş hatası: " + error.message);
       return;
     }
-    router.push("/home"); // ✅ giriş başarılı → home
+    router.push("/home");
   };
 
   // Kayıt ol
@@ -43,7 +43,7 @@ export default function AuthPage() {
 
     let avatarUrl: string | null = null;
 
-    // Avatarı storage’a yükle
+    // Avatar yükleme
     if (avatar) {
       const fileExt = avatar.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
@@ -58,33 +58,32 @@ export default function AuthPage() {
         return;
       }
 
-      // 📌 Burada public URL alıyoruz
-      const { data: publicUrlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
+      // 📌 Public URL al
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      avatarUrl = data.publicUrl;
 
-      avatarUrl = publicUrlData.publicUrl;
-      console.log("📷 Avatar public URL:", avatarUrl); // ✅ kontrol için ekledik
+      console.log("📷 Avatar public URL:", avatarUrl); // kontrol için
     }
 
     // Kullanıcı kaydı
-    const { error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
       options: {
         data: {
           username,
-          avatar_url: avatarUrl, // ✅ metadata içine kaydediyoruz
+          avatar_url: avatarUrl ?? "", // boş gitmesini engelledik
         },
       },
     });
 
-    if (error) {
-      alert("Kayıt hatası: " + error.message);
+    if (signUpError) {
+      alert("Kayıt hatası: " + signUpError.message);
       return;
     }
 
     alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
+    router.push("/"); // kayıttan sonra login sayfasına yönlendir
   };
 
   return (
