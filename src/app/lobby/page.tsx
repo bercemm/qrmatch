@@ -1,78 +1,113 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { supabase } from "../lib/supabaseClient"
-import { useRouter } from "next/navigation"
-
-interface Profile {
-  id: string
-  username: string
-  avatar_url: string | null
-}
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function LobbyPage() {
-  const router = useRouter()
-  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
-  const fetchProfiles = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url")
-
-    if (!error) setProfiles(data || [])
-  }
-
+  // Kullanıcıyı al
   useEffect(() => {
-    fetchProfiles()
+    const getUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setUser(data.user);
 
+      // Kullanıcı online olarak presence tablosuna ekle
+      if (data.user) {
+        await supabase.from("presence").upsert({
+          user_id: data.user.id,
+          last_seen: new Date().toISOString(),
+        });
+      }
+    };
+
+    getUser();
+
+    // Temizlik → sayfadan çıkınca kendi kaydını sil
+    return () => {
+      if (user) {
+        supabase.from("presence").delete().eq("user_id", user.id);
+      }
+    };
+  }, []);
+
+  // Realtime online kullanıcıları dinle
+  useEffect(() => {
     const channel = supabase
-      .channel("profiles-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        fetchProfiles()
-      })
-      .subscribe()
+      .channel("presence-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "presence" },
+        async () => {
+          // Tablo değiştiğinde online kullanıcıları tekrar çek
+          const { data } = await supabase.from("presence").select(`
+            user_id,
+            last_seen,
+            profiles (username, avatar_url)
+          `);
+          setOnlineUsers(data || []);
+        }
+      )
+      .subscribe();
+
+    // İlk yüklemede kullanıcıları getir
+    const fetchOnline = async () => {
+      const { data } = await supabase.from("presence").select(`
+        user_id,
+        last_seen,
+        profiles (username, avatar_url)
+      `);
+      setOnlineUsers(data || []);
+    };
+    fetchOnline();
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [])
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
+  // Logout butonu
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/") // auth sayfasına yönlendir
-  }
+    if (user) {
+      await supabase.from("presence").delete().eq("user_id", user.id);
+    }
+    await supabase.auth.signOut();
+    router.push("/auth");
+  };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center p-6">
-      <div className="flex w-full justify-between items-center mb-6 max-w-4xl">
-        <h1 className="text-2xl font-bold">👥 Lobi</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 px-4 py-2 rounded hover:bg-red-600 transition"
-        >
-          Çıkış Yap
-        </button>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6">
+      <h1 className="text-2xl font-bold">☕ Kafede Online Olanlar</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {onlineUsers.map((u, i) => (
+          <div
+            key={i}
+            className="flex flex-col items-center bg-gray-800 p-4 rounded shadow"
+          >
+            <img
+              src={u.profiles?.avatar_url || "/default-avatar.png"}
+              alt="Avatar"
+              className="w-20 h-20 rounded-full border-2 border-gray-600 object-cover"
+            />
+            <p className="mt-2 font-semibold">{u.profiles?.username || "Anonim"}</p>
+          </div>
+        ))}
       </div>
 
-      {profiles.length === 0 ? (
-        <p className="text-gray-400">Henüz kimse yok...</p>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-4xl">
-          {profiles.map((profile) => (
-            <div
-              key={profile.id}
-              className="flex flex-col items-center bg-gray-900 p-4 rounded-lg shadow-md hover:scale-105 transition"
-            >
-              <img
-                src={profile.avatar_url || "/default-avatar.png"}
-                alt={profile.username || "Kullanıcı"}
-                className="w-20 h-20 rounded-full object-cover mb-2 border border-gray-700"
-              />
-              <p className="font-semibold">{profile.username || "Bilinmeyen"}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <button
+        onClick={handleLogout}
+        className="bg-red-500 px-6 py-2 rounded hover:bg-red-600 transition mt-6"
+      >
+        Çıkış Yap
+      </button>
     </div>
-  )
+  );
 }
