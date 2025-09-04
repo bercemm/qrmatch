@@ -58,20 +58,23 @@ export default function AuthPage() {
         return;
       }
 
+      // 📌 Burada public URL alıyoruz
       const { data: publicUrlData } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
 
       avatarUrl = publicUrlData.publicUrl;
+      console.log("📷 Avatar public URL:", avatarUrl); // ✅ kontrol için ekledik
     }
 
+    // Kullanıcı kaydı
     const { error } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
       options: {
         data: {
           username,
-          avatar_url: avatarUrl,
+          avatar_url: avatarUrl, // ✅ metadata içine kaydediyoruz
         },
       },
     });
@@ -108,11 +111,13 @@ export default function AuthPage() {
         <button onClick={handleSignIn} className="bg-blue-500 px-4 py-2 rounded">
           Giriş Yap
         </button>
-        {/* ⛔️ Fazladan link buradaydı — tamamen kaldırdık */}
       </div>
 
       {/* Kayıt Formu */}
-      <form onSubmit={handleSignUp} className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80">
+      <form
+        onSubmit={handleSignUp}
+        className="flex flex-col gap-2 bg-gray-900 p-4 rounded w-80"
+      >
         <h2 className="text-lg font-semibold">Kayıt Ol</h2>
         <input
           type="text"
@@ -157,8 +162,11 @@ export default function AuthPage() {
             onChange={(e) => setAvatar(e.target.files?.[0] ?? null)}
             className="hidden"
           />
-          {/* Seçilen dosya adı */}
-          {avatar && <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>}
+          {avatar && (
+            <p className="text-sm text-green-400">
+              Seçilen: {avatar.name}
+            </p>
+          )}
         </div>
 
         <button type="submit" className="bg-green-500 px-4 py-2 rounded">

@@ -1,18 +1,36 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { supabase } from "../lib/supabaseClient"
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getUser = async () => {
-      const { data } = await supabase.auth.getUser()
-      setUser(data?.user || null)
-    }
-    getUser()
-  }, [])
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Kullanıcı alınamadı:", error.message);
+      } else {
+        setUser(data?.user || null);
+
+        // 🔥 Debug için log ekledim
+        console.log("👤 Kullanıcı metadata:", data?.user?.user_metadata);
+        console.log("📸 Avatar URL:", data?.user?.user_metadata?.avatar_url);
+      }
+      setLoading(false);
+    };
+    getUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p className="text-gray-400">Yükleniyor...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6">
@@ -25,7 +43,11 @@ export default function HomePage() {
 
           {/* Profil fotoğrafı */}
           <img
-            src={user.user_metadata?.avatar_url || "/default-avatar.png"}
+            src={
+              user.user_metadata?.avatar_url && user.user_metadata.avatar_url.length > 0
+                ? user.user_metadata.avatar_url
+                : "/default-avatar.png"
+            }
             alt="Profil Fotoğrafı"
             className="w-32 h-32 rounded-full border-4 border-gray-700 object-cover shadow-lg"
           />
@@ -36,8 +58,8 @@ export default function HomePage() {
           </button>
         </>
       ) : (
-        <p className="text-gray-400">Yükleniyor...</p>
+        <p className="text-gray-400">Kullanıcı bulunamadı</p>
       )}
     </div>
-  )
+  );
 }
