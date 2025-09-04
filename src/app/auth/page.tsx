@@ -29,7 +29,7 @@ export default function AuthPage() {
       alert("Giriş hatası: " + error.message);
       return;
     }
-    router.push("/home"); // ✅ giriş başarılı → home
+    router.push("/home");
   };
 
   // Kayıt ol
@@ -58,21 +58,19 @@ export default function AuthPage() {
         return;
       }
 
-      // 📌 Public URL al
+      // Public URL al
       const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
       avatarUrl = data.publicUrl;
-
-      console.log("📷 Avatar public URL:", avatarUrl); // kontrol için
     }
 
     // Kullanıcı kaydı
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
       options: {
         data: {
           username,
-          avatar_url: avatarUrl ?? "", // boş gitmesini engelledik
+          avatar_url: avatarUrl ?? "",
         },
       },
     });
@@ -82,8 +80,21 @@ export default function AuthPage() {
       return;
     }
 
-    // ✅ Artık yönlendirme yok, sadece alert
+    // ✅ profiles tablosuna da ekle
+    if (signUpData.user) {
+      const { error: profileError } = await supabase.from("profiles").insert({
+        user_id: signUpData.user.id,
+        display_name: username,
+        avatar_url: avatarUrl ?? "",
+      });
+
+      if (profileError) {
+        console.error("Profiles tablosuna eklenemedi:", profileError.message);
+      }
+    }
+
     alert("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
+    router.push("/auth"); // login sayfasına yönlendir
   };
 
   return (
@@ -107,7 +118,10 @@ export default function AuthPage() {
           onChange={(e) => setLoginPassword(e.target.value)}
           className="p-2 rounded text-white placeholder-white bg-gray-800"
         />
-        <button onClick={handleSignIn} className="bg-blue-500 px-4 py-2 rounded">
+        <button
+          onClick={handleSignIn}
+          className="bg-blue-500 px-4 py-2 rounded"
+        >
           Giriş Yap
         </button>
       </div>
@@ -162,9 +176,7 @@ export default function AuthPage() {
             className="hidden"
           />
           {avatar && (
-            <p className="text-sm text-green-400">
-              Seçilen: {avatar.name}
-            </p>
+            <p className="text-sm text-green-400">Seçilen: {avatar.name}</p>
           )}
         </div>
 
