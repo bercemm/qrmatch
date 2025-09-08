@@ -2,140 +2,161 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const router = useRouter();
+  // Login state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
-  // 📌 Giriş Yap
+  // Signup state
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
+  const [signupAvatar, setSignupAvatar] = useState<File | null>(null);
+
+  // Login
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword,
+    });
     if (error) {
-      alert(error.message);
-      return;
+      alert("Giriş hatası: " + error.message);
+    } else {
+      alert("Başarıyla giriş yaptın!");
     }
-    router.push("/lobby");
   };
 
-  // 📌 Kayıt Ol
-  const handleRegister = async () => {
-    // 1) Auth’a kullanıcı ekle
+  // Signup
+  const handleSignup = async () => {
+    if (signupPassword !== signupPasswordConfirm) {
+      alert("Şifreler uyuşmuyor!");
+      return;
+    }
+
+    // Önce kullanıcıyı oluştur
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: signupEmail,
+      password: signupPassword,
     });
 
     if (error) {
-      alert(error.message);
+      alert("Kayıt hatası: " + error.message);
       return;
     }
 
-    const user = data.user;
-    if (!user) {
-      alert("Kullanıcı oluşturulamadı!");
-      return;
-    }
-
-    // 2) Fotoğrafı storage’a yükle (opsiyonel)
     let avatarUrl = null;
-    if (avatar) {
-      const filePath = `avatars/${user.id}-${avatar.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, avatar);
 
-      if (!uploadError) {
+    // Fotoğraf varsa storage'a yükle
+    if (signupAvatar) {
+      const fileName = `${data.user?.id}-${signupAvatar.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, signupAvatar);
+
+      if (uploadError) {
+        alert("Fotoğraf yükleme hatası: " + uploadError.message);
+      } else {
         const { data: urlData } = supabase.storage
           .from("avatars")
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
         avatarUrl = urlData.publicUrl;
       }
     }
 
-    // 3) Profiles tablosuna kayıt ekle
-    const { error: profileError } = await supabase.from("profiles").insert({
-      user_id: user.id,
-      username,
-      avatar_url: avatarUrl,
-    });
+    // Profiles tablosuna kaydet
+    if (data.user) {
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          user_id: data.user.id,
+          username: signupName,
+          avatar_url: avatarUrl,
+        },
+      ]);
 
-    if (profileError) {
-      alert("Profil kaydedilemedi: " + profileError.message);
-      return;
+      if (profileError) {
+        alert("Profil kaydedilemedi: " + profileError.message);
+      } else {
+        alert("Kayıt başarılı!");
+      }
     }
-
-    router.push("/lobby");
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="bg-gray-900 p-8 rounded shadow-md w-96 space-y-6">
-        <h1 className="text-2xl font-bold text-center">QR Match</h1>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-10">
+      <h1 className="text-3xl font-bold">QR Match</h1>
 
-        {/* Giriş Formu */}
-        <div className="space-y-2">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full px-4 py-2 rounded bg-gray-800"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Şifre"
-            className="w-full px-4 py-2 rounded bg-gray-800"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button
-            onClick={handleLogin}
-            className="w-full bg-blue-500 py-2 rounded hover:bg-blue-600"
-          >
-            Giriş Yap
-          </button>
-        </div>
+      {/* Login Form */}
+      <div className="bg-gray-800 p-6 rounded w-80 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Giriş Yap</h2>
+        <input
+          type="email"
+          placeholder="Email"
+          value={loginEmail}
+          onChange={(e) => setLoginEmail(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <input
+          type="password"
+          placeholder="Şifre"
+          value={loginPassword}
+          onChange={(e) => setLoginPassword(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <button
+          onClick={handleLogin}
+          className="bg-blue-600 py-2 rounded hover:bg-blue-700"
+        >
+          Giriş Yap
+        </button>
+      </div>
 
-        {/* Kayıt Ol Formu */}
-        <div className="border-t border-gray-700 pt-4 space-y-2">
-          <input
-            type="text"
-            placeholder="Kullanıcı Adı"
-            className="w-full px-4 py-2 rounded bg-gray-800"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full px-4 py-2 rounded bg-gray-800"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Şifre"
-            className="w-full px-4 py-2 rounded bg-gray-800"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
-            className="w-full"
-          />
-          <button
-            onClick={handleRegister}
-            className="w-full bg-green-500 py-2 rounded hover:bg-green-600"
-          >
-            Kayıt Ol
-          </button>
-        </div>
+      {/* Signup Form */}
+      <div className="bg-gray-800 p-6 rounded w-80 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Kayıt Ol</h2>
+        <input
+          type="text"
+          placeholder="Kullanıcı adı"
+          value={signupName}
+          onChange={(e) => setSignupName(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={signupEmail}
+          onChange={(e) => setSignupEmail(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <input
+          type="password"
+          placeholder="Şifre"
+          value={signupPassword}
+          onChange={(e) => setSignupPassword(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <input
+          type="password"
+          placeholder="Şifre (Tekrar)"
+          value={signupPasswordConfirm}
+          onChange={(e) => setSignupPasswordConfirm(e.target.value)}
+          className="p-2 rounded text-black"
+        />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            setSignupAvatar(e.target.files ? e.target.files[0] : null)
+          }
+          className="p-2 rounded text-white bg-gray-700"
+        />
+        <button
+          onClick={handleSignup}
+          className="bg-green-600 py-2 rounded hover:bg-green-700"
+        >
+          Kayıt Ol
+        </button>
       </div>
     </div>
   );
