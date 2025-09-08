@@ -2,54 +2,65 @@
 
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
+  const router = useRouter();
 
-  // 📌 Kullanıcı Kaydı
-  const handleSignup = async () => {
+  // 📌 Giriş Yap
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    router.push("/lobby");
+  };
+
+  // 📌 Kayıt Ol
+  const handleRegister = async () => {
+    // 1) Auth’a kullanıcı ekle
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
-      alert("Kayıt hatası: " + error.message);
+      alert(error.message);
       return;
     }
 
     const user = data.user;
-    if (!user) return;
+    if (!user) {
+      alert("Kullanıcı oluşturulamadı!");
+      return;
+    }
 
-    let avatar_url = null;
-
-    // Fotoğraf yükleme
+    // 2) Fotoğrafı storage’a yükle (opsiyonel)
+    let avatarUrl = null;
     if (avatar) {
       const filePath = `avatars/${user.id}-${avatar.name}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, avatar);
 
-      if (uploadError) {
-        alert("Fotoğraf yüklenemedi: " + uploadError.message);
-        return;
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(filePath);
+        avatarUrl = urlData.publicUrl;
       }
-
-      const { data: publicUrl } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      avatar_url = publicUrl.publicUrl;
     }
 
-    // Profil tablosuna kayıt
+    // 3) Profiles tablosuna kayıt ekle
     const { error: profileError } = await supabase.from("profiles").insert({
       user_id: user.id,
       username,
-      avatar_url,
+      avatar_url: avatarUrl,
     });
 
     if (profileError) {
@@ -57,81 +68,74 @@ export default function AuthPage() {
       return;
     }
 
-    alert("Kayıt başarılı! Giriş yapabilirsiniz.");
-  };
-
-  // 📌 Kullanıcı Girişi
-  const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      alert("Giriş hatası: " + error.message);
-      return;
-    }
-
-    alert("Giriş başarılı!");
+    router.push("/lobby");
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center gap-8">
-      {/* Giriş Formu */}
-      <div className="bg-gray-900 p-6 rounded w-80 flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Giriş Yap</h2>
-        <input
-          type="email"
-          placeholder="Email"
-          className="p-2 rounded text-black"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Şifre"
-          className="p-2 rounded text-black"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          onClick={handleLogin}
-          className="bg-blue-600 p-2 rounded hover:bg-blue-700"
-        >
-          Giriş Yap
-        </button>
-      </div>
+    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="bg-gray-900 p-8 rounded shadow-md w-96 space-y-6">
+        <h1 className="text-2xl font-bold text-center">QR Match</h1>
 
-      {/* Kayıt Formu */}
-      <div className="bg-gray-900 p-6 rounded w-80 flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Kayıt Ol</h2>
-        <input
-          type="text"
-          placeholder="Kullanıcı Adı"
-          className="p-2 rounded text-black"
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          className="p-2 rounded text-black"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Şifre"
-          className="p-2 rounded text-black"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <input
-          type="file"
-          className="p-2"
-          onChange={(e) => setAvatar(e.target.files?.[0] || null)}
-        />
-        <button
-          onClick={handleSignup}
-          className="bg-green-600 p-2 rounded hover:bg-green-700"
-        >
-          Kayıt Ol
-        </button>
+        {/* Giriş Formu */}
+        <div className="space-y-2">
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full px-4 py-2 rounded bg-gray-800"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Şifre"
+            className="w-full px-4 py-2 rounded bg-gray-800"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            onClick={handleLogin}
+            className="w-full bg-blue-500 py-2 rounded hover:bg-blue-600"
+          >
+            Giriş Yap
+          </button>
+        </div>
+
+        {/* Kayıt Ol Formu */}
+        <div className="border-t border-gray-700 pt-4 space-y-2">
+          <input
+            type="text"
+            placeholder="Kullanıcı Adı"
+            className="w-full px-4 py-2 rounded bg-gray-800"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full px-4 py-2 rounded bg-gray-800"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Şifre"
+            className="w-full px-4 py-2 rounded bg-gray-800"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
+            className="w-full"
+          />
+          <button
+            onClick={handleRegister}
+            className="w-full bg-green-500 py-2 rounded hover:bg-green-600"
+          >
+            Kayıt Ol
+          </button>
+        </div>
       </div>
     </div>
   );
